@@ -252,10 +252,10 @@ namespace OOP13
 
     class Client
     {
-        public Client(string name, int money)
+        public Client(string appellation, int cash)
         {
-            Name = name;
-            Money = money;
+            Name = appellation;
+            Money = cash;
         }
 
         public string Name { get; private set; }
