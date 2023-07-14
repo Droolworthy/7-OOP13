@@ -33,7 +33,7 @@ namespace OOP13
             {
                 Car car = _cars.Dequeue();
                 Client client = _clients.Dequeue();
-                Detail detail = _partWarehouse.GetDetailByIndex(UserUtils.GenerateRandomNumber(0, _partWarehouse.GetDetailsCount()));
+                Detail detail = _partWarehouse.GetDetailByIndex(UserUtils.GenerateRandomNumber(0,_partWarehouse.GetDetailsCount()));
 
                 string commandAcceptClient = "1";
                 string commandExit = "2";
@@ -130,9 +130,9 @@ namespace OOP13
             {
                 int moneyToPayFine = client.PayFineCustomer();
 
-                _partWarehouse.RemoveDetail(detail);
-
                 _moneyServiceStation -= moneyToPayFine;
+
+                _partWarehouse.RemoveDetail(detail);
 
                 DescribeResult($"\nПриносим свои извинения, у нас новый механик. Недавно устроился на работу...", $"Он ошибся с деталью " +
                     $"и поменял - {detail.Name}, а не {car.Breakage}.", $"Мы вам выплатим штраф в размере - {moneyToPayFine} рублей.");
@@ -145,13 +145,13 @@ namespace OOP13
 
         private bool FindPart(Car car, Client client)
         {
-            if (_partWarehouse.TryGetDetail(car))
-            {
-                DescribeResult($"\nСейчас посмотрю. Да хватит. Дак у вас есть - {car.Breakage}?", "Хм...Сейчас посмотрим есть ли " +
+            DescribeResult($"\nСейчас посмотрю. Да хватит. У вас есть - {car.Breakage}?", "Хм...Сейчас посмотрим есть ли " +
                     "она у нас на складе. Минутку...", "\nДля продолжения нажмите любую клавишу...");
 
-                Console.ReadKey();
+            Console.ReadKey();
 
+            if (_partWarehouse.TryGetDetail(car))
+            {
                 DescribeResult($"\nДа, действительно у нас есть - {car.Breakage}", $"Сейчас наш механик занимается вашей {car.Name}. " +
                     $"Вам придётся подождать...", "Клиент отдыхает в комнате досуга. Пора браться за работу. \n\nДля продолжения нажмите любую клавишу...");
 
@@ -161,11 +161,6 @@ namespace OOP13
             }
             else
             {
-                DescribeResult($"\nСейчас посмотрю. Да хватит. Дак у вас есть - {car.Breakage}?", "Хм...Сейчас посмотрим есть ли " +
-                    "она у нас на складе. Минутку...", "\nДля продолжения нажмите любую клавишу...");
-
-                Console.ReadKey();
-
                 int moneyToPayFine = client.PayFineCustomer();
 
                 _moneyServiceStation -= moneyToPayFine;
