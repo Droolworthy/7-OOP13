@@ -1,4 +1,4 @@
-﻿namespace OOP13
+namespace OOP13
 {
     internal class Program
     {
@@ -29,11 +29,17 @@
 
         public void Work(CarService carService)
         {
-            string commandAcceptClient = "1";
-            string commandExit = "2";
-
             while (_cars.Count > 0)
             {
+                Car car = _cars.Dequeue();
+                Client client = _clients.Dequeue();
+                Detail detail = _partWarehouse.GetDetailByIndex(UserUtils.GenerateRandomNumber(0, _partWarehouse.GetDetailsCount()));
+
+                string commandAcceptClient = "1";
+                string commandExit = "2";
+
+                int priceRepair = client.CalculateTotalPrice(car, _partWarehouse, carService);
+
                 Console.WriteLine($"Принять клиента - {commandAcceptClient} \nВыход - {commandExit}");
 
                 Console.Write("\nВвод: ");
@@ -41,32 +47,21 @@
 
                 if (userInput == commandAcceptClient)
                 {
-                    ShowQueueCars();
+                    GetStartedClients(client, car, priceRepair);
 
-                    ShowQueueClients();
-
-                    Car car = _cars.Dequeue();
-                    Client client = _clients.Dequeue();
-                    Detail detail = _partWarehouse.GetDetailByIndex(UserUtils.GenerateRandomNumber(0, _partWarehouse.GetDetailsCount()));
-
-                    DescribeResult($"\nБаланс денег автосервиса - {_moneyServiceStation} рублей.", $"\nВ автосерис приехала машина - {car.Name}",
-                        $"Из машины вышел клиент - {client.Name}");
-
-                    DescribeResult($"У него в кармане - {client.Money} рублей.", $"\nЗдравствуйте. У машины проблемы с деталью - {car.Breakage}. " +
-                        $"Он у вас есть?", "\nХм...Сейчас посмотрим есть ли она у нас на складе. Минутку...");
-
-                    Console.WriteLine("Для продолжения нажмите любую клавишу...");
-                    Console.ReadKey();
-
-                    FindPart(car, client);
+                    if (client.CanPay(_partWarehouse, carService, car))
                     {
-                        RepairCar(car, detail, client);
+                        FindPart(car, client);
 
-                        BuyDetail(detail, client, carService, car);
+                        if (RepairCar(car, detail, client))
+                        {
+                            PayRepair(client, carService, car, priceRepair);
+                        }
                     }
-
-                    Console.ReadKey();
-                    Console.Clear();
+                    else
+                    {
+                        Console.WriteLine("\nУ клиента не хватает денег для оплаты. Он уехал.");
+                    }
                 }
                 else if (userInput == commandExit)
                 {
@@ -76,6 +71,9 @@
                 {
                     Console.Clear();
                 }
+
+                Console.ReadKey();
+                Console.Clear();
             }
         }
 
@@ -89,41 +87,58 @@
             return _pricesWork.Count;
         }
 
-        private void BuyDetail(Detail detail, Client client, CarService carService, Car cars)
+        private void GetStartedClients(Client client, Car car, int cost)
         {
-            if (client.Buy(_partWarehouse, carService, detail))
-            {
-                int cost = client.CalculateTotalPrice(_partWarehouse, carService, detail);
+            ShowQueueCars();
 
-                _moneyServiceStation += cost;
+            ShowQueueClients();
 
-                _partWarehouse.RemoveDetail(detail);
+            DescribeResult($"\nБаланс денег автосервиса - {_moneyServiceStation} рублей.", $"\nВ автосерис приехала машина - {car.Name}",
+                $"Из машины вышел клиент - {client.Name}.");
 
-                DescribeResult($"\nВам нужно заплатить - {cost} рублей", $"\nКлиент - {client.Name} отдаёт вам {cost} рублей.",
-                    $"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {cars.Name} и уехал.");
-            }
-            else
-            {
-                Console.WriteLine($"Клиент хотел оплатить услуги, но ему не хватает денег. Он уехал...");
-            }
+            DescribeResult($"У него в кармане - {client.Money} рублей.", $"\nЗдравствуйте. У машины проблемы с деталью - {car.Breakage}.",
+                $"\nЗдравствуйте. Вам придётся заплатить - {cost} рублей за деталь и работу. У вас хватит денег? \n\nДля продолжения нажмите любую клавишу...");
+
+            Console.ReadKey();
         }
 
-        private void RepairCar(Car car, Detail detail, Client client)
+        private void PayRepair(Client client, CarService carService, Car car, int cost)
+        {
+            client.Buy(_partWarehouse, carService, car);
+
+            _moneyServiceStation += cost;
+
+            DescribeResult($"\nВам нужно заплатить - {cost} рублей", $"\nКлиент - {client.Name} отдаёт вам {cost} рублей.",
+                $"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {car.Name} и уехал.");
+        }
+
+        private bool RepairCar(Car car, Detail detail, Client client)
         {
             if (TryRepairCar(car, detail))
             {
-                Console.WriteLine($"\nВы успешно заменили деталь - {detail.Name}");
-                Console.WriteLine("Для продолжения нажмите любую клавишу...");
+                _partWarehouse.RemoveDetail(detail);
+
+                DescribeResult($"\nНаш механик успешно заменили деталь - {detail.Name}", $"Всё готово {client.Name}. " +
+                    $"Давайте расчитаемся с вами.", "Для продолжения нажмите любую клавишу...");
+
                 Console.ReadKey();
+
+                return true;
             }
             else
             {
                 int moneyToPayFine = client.PayFineCustomer();
 
+                _partWarehouse.RemoveDetail(detail);
+
                 _moneyServiceStation -= moneyToPayFine;
 
                 DescribeResult($"\nПриносим свои извинения, у нас новый механик. Недавно устроился на работу...", $"Он ошибся с деталью " +
                     $"и поменял - {detail.Name}, а не {car.Breakage}.", $"Мы вам выплатим штраф в размере - {moneyToPayFine} рублей.");
+
+                Console.WriteLine($"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {car.Name} и уехал.");
+
+                return false;
             }
         }
 
@@ -131,10 +146,14 @@
         {
             if (_partWarehouse.TryGetDetail(car))
             {
-                DescribeResult($"\nДа, действительно у нас есть - {car.Breakage}", $"Сейчас наш механик занимается вашей {car.Name}. " +
-                    $"Вам придётся подождать...", "Клиент отдыхает в комнате досуга. Пора браться за работу.");
+                DescribeResult($"\nСейчас посмотрю. Да хватит. Дак у вас есть - {car.Breakage}?", "Хм...Сейчас посмотрим есть ли " +
+                    "она у нас на складе. Минутку...", "\nДля продолжения нажмите любую клавишу...");
 
-                Console.WriteLine("Для продолжения нажмите любую клавишу...");
+                Console.ReadKey();
+
+                DescribeResult($"\nДа, действительно у нас есть - {car.Breakage}", $"Сейчас наш механик занимается вашей {car.Name}. " +
+                    $"Вам придётся подождать...", "Клиент отдыхает в комнате досуга. Пора браться за работу. \n\nДля продолжения нажмите любую клавишу...");
+
                 Console.ReadKey();
             }
             else
@@ -144,9 +163,8 @@
                 _moneyServiceStation -= moneyToPayFine;
 
                 DescribeResult($"\nК сожелению у нас нету - {car.Breakage}", $"Мы вам выплатим штраф в размере - {moneyToPayFine} рублей",
-                        $"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {car.Name} и уехал.");
-
-                Console.WriteLine("Для того чтобы запустить следующую машину нажмите любую клавишу...");
+                        $"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {car.Name} и уехал. " +
+                        $"Для того чтобы запустить следующую машину нажмите любую клавишу...");
             }
         }
 
@@ -198,7 +216,7 @@
             _pricesWork.Add(new Detail("Ремень ГРМ", 2500));
             _pricesWork.Add(new Detail("Аккумулятор", 1000));
             _pricesWork.Add(new Detail("Рулевая рейка", 2000));
-            _pricesWork.Add(new Detail("Тормозная колодка", 500));
+            _pricesWork.Add(new Detail("Тормозная колодка", 1000));
             _pricesWork.Add(new Detail("Фара", 900));
             _pricesWork.Add(new Detail("Бампер", 2500));
             _pricesWork.Add(new Detail("Маховик", 3500));
@@ -211,20 +229,24 @@
 
         private void CreateQueueClients()
         {
-            _clients.Enqueue(new Client("Василий", 10000));
-            _clients.Enqueue(new Client("Лена", 11000));
-            _clients.Enqueue(new Client("Николай", 12000));
-            _clients.Enqueue(new Client("Алексей", 13000));
-            _clients.Enqueue(new Client("Владимир", 14000));
+            _clients.Enqueue(new Client("Василий", 6500));
+            _clients.Enqueue(new Client("Михаил", 1235));
+            _clients.Enqueue(new Client("Елена", 10000));
+            _clients.Enqueue(new Client("Николай", 11234));
+            _clients.Enqueue(new Client("Алексей", 9999));
+            _clients.Enqueue(new Client("Владимир", 12085));
+            _clients.Enqueue(new Client("Артемий", 3900));
         }
 
         private void CreateQueueCars()
         {
             _cars.Enqueue(new Car("LADA Granta", "Аккумулятор"));
+            _cars.Enqueue(new Car("Škoda Octavia", "Маховик"));
             _cars.Enqueue(new Car("Hyundai Solaris", "Ремень ГРМ"));
             _cars.Enqueue(new Car("Lada Vesta", "Рулевая рейка"));
             _cars.Enqueue(new Car("ВАЗ-2121", "Тормозная колодка"));
-            _cars.Enqueue(new Car("ВАЗ-2114 ", "Фара"));
+            _cars.Enqueue(new Car("ВАЗ-2114 ", "Турбокомпрессор"));
+            _cars.Enqueue(new Car("Москвич - 412 ", "Фара"));
         }
     }
 
@@ -240,14 +262,19 @@
 
         public int Money { get; private set; }
 
-        public int CalculateTotalPrice(PartWarehouse partWarehouse, CarService carService, Detail detail)
+        public void Buy(PartWarehouse partWarehouse, CarService carService, Car car)
+        {
+            Money -= CalculateTotalPrice(car, partWarehouse, carService);
+        }
+
+        public int CalculateTotalPrice(Car car, PartWarehouse partWarehouse, CarService carService)
         {
             int priceDetail = 0;
             int priceWork = 0;
 
             for (int i = 0; i < partWarehouse.GetDetailsCount(); i++)
             {
-                if (detail.Name == partWarehouse.GetDetailByIndex(i).Name)
+                if (partWarehouse.GetDetailByIndex(i).Name == car.Breakage)
                 {
                     priceDetail = partWarehouse.GetDetailByIndex(i).Price;
                 }
@@ -255,7 +282,7 @@
 
             for (int i = 0; i < carService.GetPricesWorkCount(); i++)
             {
-                if (detail.Name == carService.GetPriceWorkByIndex(i).Name)
+                if (car.Breakage == carService.GetPriceWorkByIndex(i).Name)
                 {
                     priceWork = carService.GetPriceWorkByIndex(i).Price;
                 }
@@ -278,23 +305,9 @@
             return moneyToPayFine;
         }
 
-        public bool Buy(PartWarehouse partWarehouse, CarService carService, Detail detail)
+        public bool CanPay(PartWarehouse partWarehouse, CarService carService, Car car)
         {
-            if (CanPay(partWarehouse, carService, detail))
-            {
-                Money -= CalculateTotalPrice(partWarehouse, carService, detail);
-
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool CanPay(PartWarehouse partWarehouse, CarService carService, Detail detail)
-        {
-            int cost = CalculateTotalPrice(partWarehouse, carService, detail);
-
-            return Money >= cost;
+            return Money >= CalculateTotalPrice(car, partWarehouse, carService);
         }
     }
 
