@@ -33,7 +33,7 @@ namespace OOP13
             {
                 Car car = _cars.Dequeue();
                 Client client = _clients.Dequeue();
-                Detail detail = _partWarehouse.GetDetailByIndex(UserUtils.GenerateRandomNumber(0,_partWarehouse.GetDetailsCount()));
+                Detail detail = _partWarehouse.GetDetailByIndex(UserUtils.GenerateRandomNumber(0, _partWarehouse.GetDetailsCount()));
 
                 string commandAcceptClient = "1";
                 string commandExit = "2";
