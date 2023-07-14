@@ -51,12 +51,13 @@ namespace OOP13
 
                     if (client.CanPay(_partWarehouse, carService, car))
                     {
-                        FindPart(car, client);
-
-                        if (RepairCar(car, detail, client))
+                        if(FindPart(car, client))
                         {
-                            PayRepair(client, carService, car, priceRepair);
-                        }
+                            if (RepairCar(car, detail, client))
+                            {
+                                PayRepair(client, carService, car, priceRepair);
+                            }
+                        }                     
                     }
                     else
                     {
@@ -142,7 +143,7 @@ namespace OOP13
             }
         }
 
-        private void FindPart(Car car, Client client)
+        private bool FindPart(Car car, Client client)
         {
             if (_partWarehouse.TryGetDetail(car))
             {
@@ -155,16 +156,25 @@ namespace OOP13
                     $"Вам придётся подождать...", "Клиент отдыхает в комнате досуга. Пора браться за работу. \n\nДля продолжения нажмите любую клавишу...");
 
                 Console.ReadKey();
+
+                return true;
             }
             else
             {
+                DescribeResult($"\nСейчас посмотрю. Да хватит. Дак у вас есть - {car.Breakage}?", "Хм...Сейчас посмотрим есть ли " +
+                    "она у нас на складе. Минутку...", "\nДля продолжения нажмите любую клавишу...");
+
+                Console.ReadKey();
+
                 int moneyToPayFine = client.PayFineCustomer();
 
                 _moneyServiceStation -= moneyToPayFine;
 
                 DescribeResult($"\nК сожелению у нас нету - {car.Breakage}", $"Мы вам выплатим штраф в размере - {moneyToPayFine} рублей",
                         $"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {car.Name} и уехал. " +
-                        $"Для того чтобы запустить следующую машину нажмите любую клавишу...");
+                        $"\n\nДля того чтобы запустить следующую машину нажмите любую клавишу...");
+
+                return false;
             }
         }
 
