@@ -26,55 +26,64 @@ namespace OOP13
 
         public void Work()
         {
-            while (_clients.Count > 0)
+            bool isWork = true;
+
+            string commandAcceptClient = "1";
+            string commandExit = "2";
+
+            while (isWork)
             {
-                Client client = _clients.Dequeue();
-
-                string commandAcceptClient = "1";
-                string commandExit = "2";
-
-                int priceRepair = CalculateTotalPrice(client);
-
-                Console.WriteLine($"Принять клиента - {commandAcceptClient} \nВыход - {commandExit}");
-
-                Console.Write("\nВвод: ");
-                string userInput = Console.ReadLine();
-
-                if (userInput == commandAcceptClient)
+                if(_clients.Count > 0)
                 {
-                    Serve(client, priceRepair);
+                    Console.WriteLine($"Принять клиента - {commandAcceptClient} \nВыход - {commandExit}");
 
-                    if (client.IsEnoughMoney(priceRepair))
+                    Console.Write("\nВвод: ");
+                    string userInput = Console.ReadLine();
+
+                    if (userInput == commandAcceptClient)
                     {
-                        int index = UserUtils.GenerateRandomNumber(0, _detailWarehouse.GetDetailsCount());
+                        Client client = _clients.Dequeue();
 
-                        Detail detail = _detailWarehouse.GetDetailByIndex(index);
+                        int priceRepair = CalculateTotalPrice(client);
 
-                        if (TryFindPart(client))
+                        Serve(client, priceRepair);
+
+                        if (client.IsEnoughMoney(priceRepair))
                         {
-                            if (CanRepairCar(detail, client))
+                            int index = UserUtils.GenerateRandomNumber(0, _detailWarehouse.GetDetailsCount());
+
+                            Detail detail = _detailWarehouse.GetDetailByIndex(index);
+
+                            if (TryFindPart(client))
                             {
-                                PayRepair(client, priceRepair);
+                                if (CanRepairCar(detail, client))
+                                {
+                                    PayRepair(client, priceRepair);
+                                }
                             }
                         }
+                        else
+                        {
+                            Console.WriteLine("\nУ клиента не хватает денег для оплаты. Он уехал.");
+                        }
+                    }
+                    else if (userInput == commandExit)
+                    {
+                        isWork = false;
                     }
                     else
                     {
-                        Console.WriteLine("\nУ клиента не хватает денег для оплаты. Он уехал.");
+                        Console.Clear();
                     }
-                }
-                else if (userInput == commandExit)
-                {
-                    return;
+
+                    Console.ReadKey();
+                    Console.Clear();
                 }
                 else
                 {
-                    Console.Clear();
+                    isWork = false;
                 }
-
-                Console.ReadKey();
-                Console.Clear();
-            }
+            }                             
         }
 
         public int PayFine()
