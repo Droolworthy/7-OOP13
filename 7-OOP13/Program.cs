@@ -58,7 +58,7 @@ namespace OOP13
                             {
                                 if (CanRepairCar(detail, client))
                                 {
-                                    PayRepair(client, priceRepair);
+                                    PayForRepairs(client, priceRepair);
                                 }
                             }
                         }
@@ -150,7 +150,7 @@ namespace OOP13
             Console.ReadKey();
         }
 
-        private void PayRepair(Client client, int cost)
+        private void PayForRepairs(Client client, int cost) 
         {
             client.PaysAmountRepairs(client);
 
