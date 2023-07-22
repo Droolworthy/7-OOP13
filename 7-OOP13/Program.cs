@@ -13,14 +13,11 @@ namespace OOP13
     class CarService
     {
         private Queue<Client> _clients = new Queue<Client>();
-        private List<Detail> _details = new List<Detail>();
         private DetailWarehouse _detailWarehouse = new DetailWarehouse();
         private int _moneyStation = 100000;
 
         public CarService()
         {
-            AddDetails();
-
             CreateQueueClients();
         }
 
@@ -33,7 +30,7 @@ namespace OOP13
 
             while (isWork)
             {
-                if(_clients.Count > 0)
+                if (_clients.Count > 0)
                 {
                     Console.WriteLine($"Принять клиента - {commandAcceptClient} \nВыход - {commandExit}");
 
@@ -46,7 +43,7 @@ namespace OOP13
 
                         int priceRepair = CalculateTotalPrice(client);
 
-                        Serve(client, priceRepair);
+                        OutputInfo(client, priceRepair);
 
                         if (client.IsEnoughMoney(priceRepair))
                         {
@@ -56,9 +53,14 @@ namespace OOP13
 
                             if (TryFindPart(client))
                             {
-                                if (CanRepairCar(detail, client))
+                                if (CanRepairCar(client, detail))
                                 {
-                                    PayForRepairs(client, priceRepair);
+                                    client.PaysAmountRepairs(priceRepair); 
+
+                                    _moneyStation += priceRepair;
+
+                                    DescribeResult($"\nВам нужно заплатить - {priceRepair} рублей", $"\nКлиент - {client.Name} отдаёт вам {priceRepair} рублей.",
+                                        $"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {client.CarName} и уехал.");
                                 }
                             }
                         }
@@ -83,7 +85,7 @@ namespace OOP13
                 {
                     isWork = false;
                 }
-            }                             
+            }
         }
 
         public int PayFine()
@@ -100,7 +102,7 @@ namespace OOP13
             int priceDetail = 0;
             int priceWork = 0;
             int detailsCount = _detailWarehouse.GetDetailsCount();
-            int pricesWorkCount = GetPricesWorkCount();
+            int pricesWorkCount = _detailWarehouse.GetDetailsCount();
 
             for (int i = 0; i < detailsCount; i++)
             {
@@ -114,11 +116,11 @@ namespace OOP13
 
             for (int i = 0; i < pricesWorkCount; i++)
             {
-                Detail element = GetElementByIndex(i);
+                Detail element = _detailWarehouse.GetDetailByIndex(i);
 
                 if (client.Breakage == element.Name)
                 {
-                    priceWork = element.Price;
+                    priceWork = element.AmountForWork;
                 }
             }
 
@@ -127,17 +129,7 @@ namespace OOP13
             return priceRepair;
         }
 
-        public Detail GetElementByIndex(int index)
-        {
-            return _details.ElementAt(index);
-        }
-
-        public int GetPricesWorkCount()
-        {
-            return _details.Count;
-        }
-
-        private void Serve(Client client, int cost)
+        private void OutputInfo(Client client, int cost)
         {
             ShowQueueClients();
 
@@ -150,46 +142,6 @@ namespace OOP13
             Console.ReadKey();
         }
 
-        private void PayForRepairs(Client client, int cost) 
-        {
-            client.PaysAmountRepairs(client);
-
-            _moneyStation += cost;
-
-            DescribeResult($"\nВам нужно заплатить - {cost} рублей", $"\nКлиент - {client.Name} отдаёт вам {cost} рублей.",
-                $"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {client.CarName} и уехал.");
-        }
-
-        private bool CanRepairCar(Detail detail, Client client)
-        {
-            if (СouldRepairCar(client, detail))
-            {
-                _detailWarehouse.RemoveDetail(detail);
-
-                DescribeResult($"\nНаш механик успешно заменили деталь - {detail.Name}", $"Всё готово {client.Name}. " +
-                    $"Давайте расчитаемся с вами.", "Для продолжения нажмите любую клавишу...");
-
-                Console.ReadKey();
-
-                return true;
-            }
-            else
-            {
-                int moneyToPayFine = client.AcceptMoneyFine();
-
-                _moneyStation -= moneyToPayFine;
-
-                _detailWarehouse.RemoveDetail(detail);
-
-                DescribeResult($"\nПриносим свои извинения, у нас новый механик. Недавно устроился на работу...", $"Он ошибся с деталью " +
-                    $"и поменял - {detail.Name}, а не {client.Breakage}.", $"Мы вам выплатим штраф в размере - {moneyToPayFine} рублей.");
-
-                Console.WriteLine($"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {client.CarName} и уехал.");
-
-                return false;
-            }
-        }
-
         private bool TryFindPart(Client client)
         {
             DescribeResult($"\nСейчас посмотрю. Да хватит. У вас есть - {client.Breakage}?", "Хм...Сейчас посмотрим есть ли " +
@@ -197,7 +149,7 @@ namespace OOP13
 
             Console.ReadKey();
 
-            if (_detailWarehouse.TryGetDetail(client))
+            if (_detailWarehouse.ChecksAvailabilityPart(client))
             {
                 DescribeResult($"\nДа, действительно у нас есть - {client.Breakage}", $"Сейчас наш механик занимается вашей {client.CarName}. " +
                     $"Вам придётся подождать...", "Клиент отдыхает в комнате досуга. Пора браться за работу. \n\nДля продолжения нажмите любую клавишу...");
@@ -208,7 +160,9 @@ namespace OOP13
             }
             else
             {
-                int moneyToPayFine = client.AcceptMoneyFine();
+                int moneyToPayFine = PayFine();
+
+                client.AcceptMoneyFine(moneyToPayFine);
 
                 _moneyStation -= moneyToPayFine;
 
@@ -220,7 +174,7 @@ namespace OOP13
             }
         }
 
-        private bool СouldRepairCar(Client client, Detail detail)
+        private bool CanRepairCar(Client client, Detail detail)
         {
             int detailsCount = _detailWarehouse.GetDetailsCount();
 
@@ -232,10 +186,30 @@ namespace OOP13
                 {
                     if (client.Breakage == detail.Name)
                     {
+                        _detailWarehouse.RemoveDetail(detail);
+
+                        DescribeResult($"\nНаш механик успешно заменили деталь - {detail.Name}", $"Всё готово {client.Name}. " +
+                            $"Давайте расчитаемся с вами.", "Для продолжения нажмите любую клавишу...");
+
+                        Console.ReadKey();
+
                         return true;
                     }
                 }
             }
+
+            int moneyToPayFine = PayFine();
+
+            client.AcceptMoneyFine(moneyToPayFine);
+
+            _moneyStation -= moneyToPayFine;
+
+            _detailWarehouse.RemoveDetail(detail);
+
+            DescribeResult($"\nПриносим свои извинения, у нас новый механик. Недавно устроился на работу...", $"Он ошибся с деталью " +
+                $"и поменял - {detail.Name}, а не {client.Breakage}.", $"Мы вам выплатим штраф в размере - {moneyToPayFine} рублей.");
+
+            Console.WriteLine($"\nУ клиента {client.Name} осталось в кошельке - {client.Money}. Он сел в свою {client.CarName} и уехал.");
 
             return false;
         }
@@ -257,27 +231,11 @@ namespace OOP13
             }
         }
 
-        private void AddDetails()
-        {
-            _details.Add(new Detail("Ремень ГРМ", 2500));
-            _details.Add(new Detail("Аккумулятор", 1000));
-            _details.Add(new Detail("Рулевая рейка", 2000));
-            _details.Add(new Detail("Тормозная колодка", 1000));
-            _details.Add(new Detail("Фара", 900));
-            _details.Add(new Detail("Бампер", 2500));
-            _details.Add(new Detail("Маховик", 3500));
-            _details.Add(new Detail("Турбокомпрессор", 3550));
-            _details.Add(new Detail("Бензобак", 3900));
-            _details.Add(new Detail("Фильтр", 350));
-            _details.Add(new Detail("Поршень", 450));
-            _details.Add(new Detail("Цилиндр", 875));
-        }
-
         private void CreateQueueClients()
         {
             _clients.Enqueue(new Client("Василий", 6000, "LADA Granta", "Аккумулятор"));
             _clients.Enqueue(new Client("Михаил", 1235, "Škoda Octavia", "Маховик"));
-            _clients.Enqueue(new Client("Елена", 10000, "Hyundai Solaris", "Ремень ГРМ"));
+            _clients.Enqueue(new Client("Елена", 10000, "Hyundai Solaris", "Аккумулятор"));
             _clients.Enqueue(new Client("Николай", 11234, "Lada Vesta", "Рулевая рейка"));
             _clients.Enqueue(new Client("Алексей", 9999, "ВАЗ-2121", "Тормозная колодка"));
             _clients.Enqueue(new Client("Владимир", 12085, "ВАЗ-2114 ", "Турбокомпрессор"));
@@ -301,25 +259,15 @@ namespace OOP13
 
         public string Breakage { get; private set; }
 
-        public int Money { get; protected set; }
+        public int Money { get; private set; }
 
-        public int AcceptMoneyFine()
+        public void AcceptMoneyFine(int moneyFine)
         {
-            CarService carService = new CarService();
-
-            int moneyFine = carService.PayFine();
-
             Money += moneyFine;
-
-            return moneyFine;
         }
 
-        public void PaysAmountRepairs(Client client)
+        public void PaysAmountRepairs(int priceRepair)
         {
-            CarService carService = new CarService();
-
-            int priceRepair = carService.CalculateTotalPrice(client);
-
             Money -= priceRepair;
         }
 
@@ -329,12 +277,10 @@ namespace OOP13
     class DetailWarehouse
     {
         private List<Detail> _details = new List<Detail>();
-        private string[] _items = { "Ремень ГРМ", "Аккумулятор", "Рулевая рейка", "Тормозная колодка", "Фара", "Бампер",
-        "Маховик", "Турбокомпрессор", "Бензобак", "Фильтр", "Поршень", "Цилиндр" };
 
         public DetailWarehouse()
         {
-            CreateDetails();
+            AddDetails();
         }
 
         public Detail GetDetailByIndex(int index)
@@ -352,7 +298,7 @@ namespace OOP13
             return _details.Remove(detail);
         }
 
-        public bool TryGetDetail(Client client)
+        public bool ChecksAvailabilityPart(Client client) 
         {
             for (int i = 0; i < _details.Count; i++)
             {
@@ -365,73 +311,37 @@ namespace OOP13
             return false;
         }
 
-        private void CreateDetails()
+        private void AddDetails()
         {
-            for (int i = 0; i < _items.Length; i++)
-            {
-                AddDetails(i);
-            }
-        }
-
-        private void AddDetails(int index)
-        {
-            int minimumNumberDetails = 1;
-            int maximumNumberDetails = 2;
-            int numberDetails = UserUtils.GenerateRandomNumber(minimumNumberDetails, maximumNumberDetails);
-
-            for (int i = 0; i < numberDetails; i++)
-            {
-                _details.Add(GetItemByIndex(index));
-            }
-        }
-
-        private Detail GetItemByIndex(int index)
-        {
-            int detail = UserUtils.GenerateRandomNumber(0, _details.Count);
-
-            switch (_items[index])
-            {
-                case "Ремень ГРМ":
-                    return new Detail("Ремень ГРМ", 5000);
-                case "Аккумулятор":
-                    return new Detail("Аккумулятор", 3000);
-                case "Рулевая рейка":
-                    return new Detail("Рулевая рейка", 2000);
-                case "Тормозная колодка":
-                    return new Detail("Тормозная колодка", 500);
-                case "Фара":
-                    return new Detail("Фара", 800);
-                case "Бампер":
-                    return new Detail("Бампер", 3000);
-                case "Маховик":
-                    return new Detail("Маховик", 3000);
-                case "Турбокомпрессор":
-                    return new Detail("Турбокомпрессор", 4000);
-                case "Бензобак":
-                    return new Detail("Бензобак", 4000);
-                case "Фильтр":
-                    return new Detail("Фильтр", 300);
-                case "Поршень":
-                    return new Detail("Поршень", 450);
-                case "Цилиндр":
-                    return new Detail("Цилиндр", 875);
-            }
-
-            return _details[detail];
+            _details.Add(new Detail("Ремень ГРМ", 2500, 5000));
+            _details.Add(new Detail("Аккумулятор", 1000, 500));
+            _details.Add(new Detail("Рулевая рейка", 2000, 1500));
+            _details.Add(new Detail("Тормозная колодка", 1000, 600));
+            _details.Add(new Detail("Фара", 900, 7000));
+            _details.Add(new Detail("Бампер", 2500, 3000));
+            _details.Add(new Detail("Маховик", 3500, 4000));
+            _details.Add(new Detail("Турбокомпрессор", 3550, 2000));
+            _details.Add(new Detail("Бензобак", 3900, 5100));
+            _details.Add(new Detail("Фильтр", 350, 2000));
+            _details.Add(new Detail("Поршень", 450, 300));
+            _details.Add(new Detail("Цилиндр", 875, 400));
         }
     }
 
     class Detail
     {
-        public Detail(string appellation, int cost)
+        public Detail(string appellation, int cost, int amountForWork)
         {
             Name = appellation;
             Price = cost;
+            AmountForWork = amountForWork;
         }
 
         public string Name { get; private set; }
 
         public int Price { get; private set; }
+        
+        public int AmountForWork { get; private set; }
     }
 
     class UserUtils
