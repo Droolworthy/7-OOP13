@@ -14,11 +14,14 @@ namespace OOP13
     {
         private Queue<Client> _clients = new Queue<Client>();
         private DetailWarehouse _detailWarehouse = new DetailWarehouse();
+        private Dictionary<string, int> _worksPrice = new Dictionary<string, int>(); 
         private int _moneyStation = 100000;
 
         public CarService()
         {
             CreateQueueClients();
+
+            CreateWorksPrice();
         }
 
         public void Work()
@@ -88,39 +91,30 @@ namespace OOP13
             }
         }
 
-        public int PayFine()
+        private int Pay()
         {
-            int minimumMoneyToPayFine = 2000;
-            int maximumMoneyToPayFine = 5000;
-            int moneyToPayFine = UserUtils.GenerateRandomNumber(minimumMoneyToPayFine, maximumMoneyToPayFine);
+            int minimumMoneyToPay = 2000;
+            int maximumMoneyToPay = 5000;
+            int moneyToPay = UserUtils.GenerateRandomNumber(minimumMoneyToPay, maximumMoneyToPay);
 
-            return moneyToPayFine;
+            return moneyToPay;
         }
 
-        public int CalculateTotalPrice(Client client)
+        private int CalculateTotalPrice(Client client)
         {
             int priceDetail = 0;
-            int priceWork = 0;
-            int detailsCount = _detailWarehouse.GetDetailsCount();
-            int pricesWorkCount = _detailWarehouse.GetDetailsCount();
+            int detailsCount = _worksPrice.Count;
+            int priceWork = Pay();
 
             for (int i = 0; i < detailsCount; i++)
             {
-                Detail detail = _detailWarehouse.GetDetailByIndex(i);
+                int detailPrice = _worksPrice.ElementAt(i).Value;
 
-                if (detail.Name == client.Breakage)
+                string detailName = _worksPrice.ElementAt(i).Key;
+
+                if (detailName == client.Breakage)
                 {
-                    priceDetail = detail.Price;
-                }
-            }
-
-            for (int i = 0; i < pricesWorkCount; i++)
-            {
-                Detail element = _detailWarehouse.GetDetailByIndex(i);
-
-                if (client.Breakage == element.Name)
-                {
-                    priceWork = element.AmountForWork;
+                    priceDetail = detailPrice;
                 }
             }
 
@@ -160,7 +154,7 @@ namespace OOP13
             }
             else
             {
-                int moneyToPayFine = PayFine();
+                int moneyToPayFine = Pay();
 
                 client.AcceptMoneyFine(moneyToPayFine);
 
@@ -198,7 +192,7 @@ namespace OOP13
                 }
             }
 
-            int moneyToPayFine = PayFine();
+            int moneyToPayFine = Pay();
 
             client.AcceptMoneyFine(moneyToPayFine);
 
@@ -229,6 +223,22 @@ namespace OOP13
             {
                 Console.WriteLine(client.Name);
             }
+        }
+
+        private void CreateWorksPrice()
+        {
+            _worksPrice.Add("Ремень ГРМ", 5000);
+            _worksPrice.Add("Аккумулятор", 500);
+            _worksPrice.Add("Рулевая рейка", 1500);
+            _worksPrice.Add("Тормозная колодка", 600);
+            _worksPrice.Add("Фара", 7000);
+            _worksPrice.Add("Бампер", 3000);
+            _worksPrice.Add("Маховик", 4000);
+            _worksPrice.Add("Турбокомпрессор", 2000);
+            _worksPrice.Add("Бензобак", 5100);
+            _worksPrice.Add("Фильтр", 2000);
+            _worksPrice.Add("Поршень", 300);
+            _worksPrice.Add("Цилиндр", 400);
         }
 
         private void CreateQueueClients()
@@ -313,35 +323,29 @@ namespace OOP13
 
         private void AddDetails()
         {
-            _details.Add(new Detail("Ремень ГРМ", 2500, 5000));
-            _details.Add(new Detail("Аккумулятор", 1000, 500));
-            _details.Add(new Detail("Рулевая рейка", 2000, 1500));
-            _details.Add(new Detail("Тормозная колодка", 1000, 600));
-            _details.Add(new Detail("Фара", 900, 7000));
-            _details.Add(new Detail("Бампер", 2500, 3000));
-            _details.Add(new Detail("Маховик", 3500, 4000));
-            _details.Add(new Detail("Турбокомпрессор", 3550, 2000));
-            _details.Add(new Detail("Бензобак", 3900, 5100));
-            _details.Add(new Detail("Фильтр", 350, 2000));
-            _details.Add(new Detail("Поршень", 450, 300));
-            _details.Add(new Detail("Цилиндр", 875, 400));
+            _details.Add(new Detail("Ремень ГРМ"));
+            _details.Add(new Detail("Аккумулятор"));
+            _details.Add(new Detail("Рулевая рейка"));
+            _details.Add(new Detail("Тормозная колодка"));
+            _details.Add(new Detail("Фара"));
+            _details.Add(new Detail("Бампер"));
+            _details.Add(new Detail("Маховик"));
+            _details.Add(new Detail("Турбокомпрессор"));
+            _details.Add(new Detail("Бензобак"));
+            _details.Add(new Detail("Фильтр"));
+            _details.Add(new Detail("Поршень"));
+            _details.Add(new Detail("Цилиндр"));
         }
     }
 
     class Detail
     {
-        public Detail(string appellation, int cost, int amountForWork)
+        public Detail(string appellation)
         {
             Name = appellation;
-            Price = cost;
-            AmountForWork = amountForWork;
         }
 
         public string Name { get; private set; }
-
-        public int Price { get; private set; }
-        
-        public int AmountForWork { get; private set; }
     }
 
     class UserUtils
