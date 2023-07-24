@@ -14,7 +14,7 @@ namespace OOP13
     {
         private Queue<Client> _clients = new Queue<Client>();
         private DetailWarehouse _detailWarehouse = new DetailWarehouse();
-        private Dictionary<string, int> _worksPrice = new Dictionary<string, int>(); 
+        private Dictionary<string, int> _worksPrice = new Dictionary<string, int>();
         private int _moneyStation = 100000;
 
         public CarService()
@@ -58,7 +58,7 @@ namespace OOP13
                             {
                                 if (CanRepairCar(client, detail))
                                 {
-                                    client.PaysAmountRepairs(priceRepair); 
+                                    client.PaysAmountRepairs(priceRepair);
 
                                     _moneyStation += priceRepair;
 
@@ -91,7 +91,7 @@ namespace OOP13
             }
         }
 
-        private int Pay()
+        private int GeneratePriceForWork()
         {
             int minimumMoneyToPay = 2000;
             int maximumMoneyToPay = 5000;
@@ -104,7 +104,7 @@ namespace OOP13
         {
             int priceDetail = 0;
             int detailsCount = _worksPrice.Count;
-            int priceWork = Pay();
+            int priceWork = GeneratePriceForWork();
 
             for (int i = 0; i < detailsCount; i++)
             {
@@ -154,7 +154,7 @@ namespace OOP13
             }
             else
             {
-                int moneyToPayFine = Pay();
+                int moneyToPayFine = GeneratePriceForWork();
 
                 client.AcceptMoneyFine(moneyToPayFine);
 
@@ -192,7 +192,7 @@ namespace OOP13
                 }
             }
 
-            int moneyToPayFine = Pay();
+            int moneyToPayFine = GeneratePriceForWork();
 
             client.AcceptMoneyFine(moneyToPayFine);
 
@@ -308,7 +308,7 @@ namespace OOP13
             return _details.Remove(detail);
         }
 
-        public bool ChecksAvailabilityPart(Client client) 
+        public bool ChecksAvailabilityPart(Client client)
         {
             for (int i = 0; i < _details.Count; i++)
             {
